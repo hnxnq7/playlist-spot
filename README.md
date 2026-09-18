@@ -2,6 +2,18 @@
 
 A SongSpot-inspired music guessing game using public Spotify playlist previews. Built with Node.js 22+ and browser Web Audio; no dependencies or API keys.
 
+## GitHub Pages
+
+The static game is published at https://hnxnq7.github.io/playlist-spot/.
+
+GitHub Pages cannot run the Node import server. On Pages, paste a playlist link, open the linked Spotify embed page, save that page as HTML (Cmd/Ctrl+S), and choose the saved HTML in the game. The file is parsed locally and never uploaded. Audio loads directly from Spotify's public preview CDN. Direct one-step link import remains available on the local Node version; hosted direct imports require a separately deployed API.
+
+Publish frontend changes after committing them:
+
+```sh
+git subtree push --prefix public origin gh-pages
+```
+
 ## Run
 
 ```sh
@@ -19,7 +31,7 @@ Open http://localhost:3000 and paste a public Spotify playlist link. `PORT` may 
 
 ## Integration limitations
 
-This is an experimental local prototype. It reads data exposed in Spotify's unauthenticated public embed HTML; this is not a supported Spotify API contract and may change or fail. It imports only the exposed tracks with previews, not a guaranteed complete playlist. Private playlists and some Spotify-curated playlists are unavailable. Audio clues start from the provided preview and are not necessarily a song's opening.
+This is an experimental prototype. It reads data exposed in Spotify's unauthenticated public embed HTML; this is not a supported Spotify API contract and may change or fail. It imports only the exposed tracks with previews, not a guaranteed complete playlist. Private playlists and some Spotify-curated playlists are unavailable. Audio clues start from the provided preview and are not necessarily a song's opening.
 
 Spotify's developer policy excludes games/trivia, and development-mode API access also restricts playlist items. This prototype should not be represented as an approved Spotify integration. A publicly distributed product needs an approved/licensed music and playlist source; do not assume public previews grant permission to deploy a game.
 

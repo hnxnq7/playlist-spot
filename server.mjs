@@ -6,7 +6,7 @@ import {playlistId, extractPlaylist} from './lib.mjs';
 const publicDir = fileURLToPath(new URL('./public/', import.meta.url));
 const previews = new Map();
 const cache = new Map();
-const types = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml'};
+const types = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.svg':'image/svg+xml'};
 function json(res, status, value) {res.writeHead(status, {'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(value));}
 async function remote(url, limit) {
   const response = await fetch(url, {signal:AbortSignal.timeout(18000),redirect:'error', headers:{'User-Agent':'Mozilla/5.0', 'Accept-Language':'en-US,en;q=0.9'}});
@@ -42,7 +42,7 @@ const server = http.createServer(async(req,res)=>{
       const buffer=await remote(preview,3_000_000);
       res.writeHead(200,{'Content-Type':'audio/mpeg','Cache-Control':'private, max-age=300','Content-Length':buffer.length});return res.end(buffer);
     }
-    const files={'/':'index.html','/app.js':'app.js','/styles.css':'styles.css','/favicon.svg':'favicon.svg'};
+    const files={'/':'index.html','/app.js':'app.js','/playlist.mjs':'playlist.mjs','/timing.mjs':'timing.mjs','/styles.css':'styles.css','/favicon.svg':'favicon.svg'};
     const file=files[url.pathname];if(!file) return json(res,404,{error:'Not found'});
     const body=await readFile(publicDir+file);res.writeHead(200,{'Content-Type':types[file.slice(file.lastIndexOf('.'))],'Cache-Control':'no-cache'});res.end(body);
   }catch(error){json(res,502,{error:error.name==='TimeoutError'?'Spotify took too long to respond. Please try again.':error.message || 'Something went wrong. Please try again.'});}
