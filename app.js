@@ -1,4 +1,7 @@
+import {extractPlaylist, playlistId} from './playlist.mjs';
+import {timelinePercent} from './timing.mjs';
 const $ = id => document.getElementById(id);
+const staticHosting = location.hostname.endsWith('.github.io');
 const levels = {Easy:[0.1,0.5,2,8,15],Medium:[0.1,0.5,2,5,10],Hard:[0.1,0.3,1,3,5],Expert:[0.1,0.2,0.5,1,2],Impossible:[0.1]};
 let playlist, track, queue=[], level='Easy', step=0, round=0, points=0, streak=0, ended=false, loading=false;
 let context, gain, source, buffer, audioOffset=0, animation, generation=0, audioAbort, matches=[], selected=-1;
@@ -12,8 +15,12 @@ function shuffle(items){const result=[...items];for(let i=result.length-1;i>0;i-
 function setStatus(message){$('play-status').textContent=message;}
 function renderStages(){
   const durations=levels[level];$('duration').textContent=durations[step];
-  $('stages').replaceChildren(...durations.map((n,i)=>{const el=document.createElement('span');el.textContent=n+'s';el.className=i===step?'current':i<step?'unlocked':'';return el;}));
-  $('ticks').replaceChildren(...durations.slice(1).map(()=>document.createElement('i')));
+  const maximum=durations.at(-1), limit=timelinePercent(durations[step],durations[step],maximum);
+  $('stages').replaceChildren();
+  const clue=document.createElement('span');clue.className='current';clue.textContent=durations[step]+'s clue';clue.style.left=limit+'%';clue.style.transform=limit>80?'translateX(-100%)':limit<10?'none':'translateX(-50%)';$('stages').append(clue);
+  if(limit<80){const end=document.createElement('span');end.className='end';end.textContent=maximum+'s';$('stages').append(end);}
+  $('ticks').replaceChildren(...durations.map(n=>{const tick=document.createElement('i');tick.style.left=(n/maximum*100)+'%';tick.title=n+' seconds';return tick;}));
+  $('clip-limit').style.left=limit+'%';$('unlocked').style.width=limit+'%';
 }
 function controls(){const disabled=!track||ended||loading;$('play').disabled=disabled||!buffer;$('guess').disabled=disabled||!buffer;$('skip').disabled=disabled||!buffer;}
 function closeSuggestions(){$('suggestions').hidden=true;$('guess').setAttribute('aria-expanded','false');$('guess').removeAttribute('aria-activedescendant');selected=-1;}
@@ -22,7 +29,7 @@ async function prepareAudio(token){
   audioAbort?.abort();audioAbort=new AbortController();
   try{
     const response=await fetch(track.preview,{signal:audioAbort.signal});
-    if(!response.ok){const data=await response.json();throw new Error(data.error || 'Preview unavailable.');}
+    if(!response.ok)throw new Error('Preview unavailable.');
     const decoded=await audioContext().decodeAudioData(await response.arrayBuffer());
     if(token!==generation)return;
     buffer=decoded;audioOffset=$('offset').value==='random'?Math.random()*Math.max(0,buffer.duration-15):0;
@@ -47,8 +54,9 @@ $('play').addEventListener('click',async()=>{
   source=context.createBufferSource();source.buffer=buffer;source.connect(gain);
   const duration=Math.min(levels[level][step],buffer.duration-audioOffset);const start=context.currentTime;
   source.start(start,audioOffset,duration);$('play').classList.add('playing');$('play').setAttribute('aria-label','Stop audio clip');setStatus('Listen closely…');
-  source.onended=()=>{source=null;cancelAnimationFrame(animation);$('play').classList.remove('playing');$('play').setAttribute('aria-label','Replay audio clip');$('progress').style.width='0%';setStatus('Know it? Search below. Or listen again.');};
-  const animate=()=>{if(!source)return;$('progress').style.width=Math.min(100,(context.currentTime-start)/duration*100)+'%';animation=requestAnimationFrame(animate);};animate();
+  const maximum=levels[level].at(-1);
+  source.onended=()=>{source=null;cancelAnimationFrame(animation);$('play').classList.remove('playing');$('play').setAttribute('aria-label','Replay audio clip');$('progress').style.width=timelinePercent(duration,duration,maximum)+'%';setStatus('Know it? Search below. Or listen again.');};
+  const animate=()=>{if(!source)return;$('progress').style.width=timelinePercent(context.currentTime-start,duration,maximum)+'%';animation=requestAnimationFrame(animate);};animate();
 });
 function finish(correct){
   stopAudio();ended=true;controls();closeSuggestions();
@@ -100,20 +108,41 @@ document.querySelectorAll('[data-level]').forEach(button=>button.addEventListene
 $('volume').addEventListener('input',()=>{if(gain)gain.gain.value=Number($('volume').value)/100;});
 $('offset').addEventListener('change',()=>{stopAudio();if(buffer){audioOffset=$('offset').value==='random'?Math.random()*Math.max(0,buffer.duration-15):0;if(!ended)setStatus('Playback position updated');}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stopAudio();});
-$('import-form').addEventListener('submit',async event=>{
-  event.preventDefault();const button=$('import-button');button.disabled=true;button.textContent='Importing…';$('import-error').hidden=true;
-  try{
-    const response=await fetch(`/api/import?url=${encodeURIComponent($('playlist-url').value.trim())}`,{signal:AbortSignal.timeout(25000)});const data=await response.json();if(!response.ok)throw new Error(data.error);
+function usePlaylist(data){
     playlist=data;queue=[];track=null;round=0;points=0;streak=0;$('score').textContent='0';$('streak').textContent='0';document.body.classList.add('has-playlist');
     $('playlist-info').hidden=false;$('cover').hidden=!data.image;if(data.image)$('cover').src=data.image;
     $('playlist-link').textContent=data.name;$('playlist-link').href=`https://open.spotify.com/playlist/${data.id}`;
     $('playlist-meta').textContent=`${data.owner} · ${data.tracks.length} playable songs${data.skipped?` · ${data.skipped} unavailable`:''}`;
     $('import-note').textContent=`Imported ${data.tracks.length} of ${data.exposed} exposed tracks. Spotify may not expose the full playlist.`;
     newRound();
+}
+$('import-form').addEventListener('submit',async event=>{
+  event.preventDefault();const button=$('import-button');button.disabled=true;button.textContent='Importing…';$('import-error').hidden=true;
+  try{
+    if(staticHosting){
+      const id=playlistId($('playlist-url').value.trim());
+      $('embed-link').href=`https://open.spotify.com/embed/playlist/${id}`;$('file-instructions').hidden=false;
+      $('file-instructions').scrollIntoView({block:'nearest',behavior:'smooth'});return;
+    }
+    const response=await fetch(`/api/import?url=${encodeURIComponent($('playlist-url').value.trim())}`,{signal:AbortSignal.timeout(25000)});const data=await response.json();if(!response.ok)throw new Error(data.error);
+    usePlaylist(data);
   }catch(error){$('import-error').textContent=error.name==='TimeoutError'?'Import timed out. Please try again.':error.message || 'Could not import this playlist.';$('import-error').hidden=false;}
-  finally{button.disabled=false;button.textContent='Import playlist →';}
+  finally{button.disabled=false;button.textContent=staticHosting?'Prepare import →':'Import playlist →';}
 });
 $('help-open').addEventListener('click',()=>$('help').showModal());
 ['help-close','help-done'].forEach(id=>$(id).addEventListener('click',()=>$('help').close()));
 $('help').addEventListener('click',event=>{if(event.target===$('help')){const r=$('help').getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)$('help').close();}});
 renderStages();
+
+$('playlist-file').addEventListener('change',async()=>{
+  const file=$('playlist-file').files[0];if(!file)return;$('import-error').hidden=true;
+  try{
+    if(file.size>10_000_000)throw new Error('Choose a playlist HTML file smaller than 10 MB.');
+    const html=await file.text();
+    const match=html.match(/spotify:playlist:([a-zA-Z0-9]{22})/);
+    if(!match)throw new Error('Choose the saved Spotify embed page (.html), not the regular playlist page.');
+    const data=extractPlaylist(html,match[1]);usePlaylist(data);$('file-instructions').hidden=true;
+  }catch(error){$('import-error').textContent=error.message;$('import-error').hidden=false;}
+  finally{$('playlist-file').value='';}
+});
+if(staticHosting){$('import-button').textContent='Prepare import →';$('import-note').textContent='On GitHub Pages, import a saved Spotify playlist page. Paste its link to get instructions.';$('file-import').hidden=false;}
