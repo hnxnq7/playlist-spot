@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#090e0c"><meta name="description" content="Turn a public Spotify playlist into a split-second song guessing challenge."><title>Playlist Spot — guess your playlist</title><link rel="icon" href="/favicon.svg"><link rel="stylesheet" href="/styles.css"><script type="module" src="/app.js"></script></head>
+<body>
+<header class="site-header"><a class="brand" href="/" aria-label="Playlist Spot home"><span class="brand-icon">▶</span> playlist<span>spot</span><span class="edition">PLAYLIST EDITION</span></a><button id="help-open" class="quiet">How to play <span class="question">?</span></button></header>
+<main>
+  <div class="intro"><span class="eyebrow">YOUR MUSIC. YOUR CHALLENGE.</span><h1>Know your playlist<span>?</span></h1><p>One tiny clip. A song you know. How fast can you name it?</p></div>
+  <section class="playlist-panel" aria-labelledby="playlist-heading">
+    <div class="import-heading"><span class="music-icon">♫</span><div><h2 id="playlist-heading">Bring your own playlist</h2><p>Paste a public Spotify playlist to start playing.</p></div><span class="public-badge">Public playlists</span></div>
+    <form id="import-form"><label class="sr-only" for="playlist-url">Public Spotify playlist link</label><div class="url-input"><span aria-hidden="true">↗</span><input id="playlist-url" type="url" required placeholder="https://open.spotify.com/playlist/…" autocomplete="off" spellcheck="false"></div><button class="primary" id="import-button" type="submit">Import playlist <span aria-hidden="true">→</span></button></form>
+    <div id="import-error" class="error" role="alert" hidden></div>
+    <div id="playlist-info" class="playlist-info" hidden><img id="cover" alt="Playlist cover" width="46" height="46"><div><a id="playlist-link" target="_blank" rel="noopener noreferrer"></a><p id="playlist-meta"></p></div><span class="loaded-badge">Ready to play</span></div>
+    <p class="import-note" id="import-note">No login needed · Only songs with available previews are included.</p>
+  </section>
+  <section class="game" aria-label="Song guessing game">
+    <div class="game-top"><span id="round-label">THE CLIP CHALLENGE</span><div class="stats"><span><strong id="score">0</strong> points</span><span><strong id="streak">0</strong> streak</span></div></div>
+    <div class="difficulty" role="group" aria-label="Difficulty"><button data-level="Easy" aria-pressed="true">Easy</button><button data-level="Medium" aria-pressed="false">Medium</button><button data-level="Hard" aria-pressed="false">Hard</button><button data-level="Expert" aria-pressed="false">Expert</button><button data-level="Impossible" aria-pressed="false">Impossible</button></div>
+    <div class="stage"><div class="clip-time"><span id="duration">0.1</span><span>s</span></div><button id="play" class="play" disabled aria-label="Play audio clip"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M11 6L26 16L11 26Z"/></svg></button><p id="play-status" aria-live="polite">Import a playlist to hear your first song</p></div>
+    <div class="timeline"><div class="timeline-track"><div id="progress"></div><div id="ticks"></div></div><div id="stages" class="stages"></div></div>
+    <div id="result" class="result" role="status" hidden></div>
+    <div id="guess-controls" class="guess-controls"><div class="search-wrap"><span aria-hidden="true" class="search-icon">⌕</span><label class="sr-only" for="guess">Name that track</label><input id="guess" placeholder="Name that track…" disabled autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="suggestions"><div id="suggestions" class="suggestions" role="listbox" hidden></div></div><button id="skip" class="secondary" disabled>Skip <span aria-hidden="true">⇥</span></button></div>
+    <button id="next" class="primary next" hidden>Next song <span aria-hidden="true">→</span></button>
+    <div id="attempts" class="attempts" aria-live="polite"></div>
+    <div class="game-bottom"><label class="playback-label">Playback <select id="offset"><option value="start">Preview start</option><option value="random">Random moment</option></select></label><label class="volume-label"><span aria-hidden="true">◖))</span><span class="sr-only">Volume</span><input id="volume" type="range" min="0" max="100" value="70"></label></div>
+  </section>
+  <div class="steps"><p><span>01</span> Import your playlist</p><p><span>02</span> Listen to the clip</p><p><span>03</span> Guess or unlock more</p></div>
+  <p class="footnote">Clips begin at the start of the available preview, not necessarily the song.<br>Public embeds may expose only part of a playlist.</p>
+</main>
+<footer><span>Made for your “I know this one” moments.</span><span>Inspired by SongSpot · Not affiliated with Spotify</span></footer>
+<dialog id="help"><button id="help-close" class="close" aria-label="Close instructions">×</button><span class="eyebrow">LISTEN. GUESS. REPEAT.</span><h2>A little sound goes a long way.</h2><ol><li>In Spotify, open a public playlist and choose <strong>Share → Copy link to playlist</strong>. Paste it above.</li><li>Press play. Your first clue is just <strong>0.1 seconds</strong>.</li><li>Type a title or artist and choose a song. A wrong guess or skip unlocks a longer clip.</li><li>Get it early for more points. Each correct round adds to your streak.</li></ol><p>Difficulty changes the clip lengths and number of attempts. Changing difficulty starts a fresh round. Songs shuffle without repeating until the playlist is exhausted.</p><p>Only publicly available previews are imported. Private playlists, unavailable previews, and some Spotify-curated playlists cannot be used.</p><button id="help-done" class="primary">Got it</button></dialog>
+</body></html>
