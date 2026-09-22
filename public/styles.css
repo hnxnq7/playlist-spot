@@ -17,6 +17,7 @@
 .stages{position:relative;height:19px;display:block}
 .stages span{position:absolute;white-space:nowrap}
 .stages .end{right:0}
+.stages .start{left:0}
 #file-import{margin-top:14px;color:var(--muted);font-size:13px;line-height:1.6}
 .file-label{display:flex;flex-wrap:wrap;align-items:center;gap:8px;color:#b6d0be}
 .file-label input{max-width:100%;font-size:12px}

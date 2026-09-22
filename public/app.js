@@ -15,12 +15,13 @@ function shuffle(items){const result=[...items];for(let i=result.length-1;i>0;i-
 function setStatus(message){$('play-status').textContent=message;}
 function renderStages(){
   const durations=levels[level];$('duration').textContent=durations[step];
-  const maximum=durations.at(-1), limit=timelinePercent(durations[step],durations[step],maximum);
+  const duration=durations[step];
   $('stages').replaceChildren();
-  const clue=document.createElement('span');clue.className='current';clue.textContent=durations[step]+'s clue';clue.style.left=limit+'%';clue.style.transform=limit>80?'translateX(-100%)':limit<10?'none':'translateX(-50%)';$('stages').append(clue);
-  if(limit<80){const end=document.createElement('span');end.className='end';end.textContent=maximum+'s';$('stages').append(end);}
-  $('ticks').replaceChildren(...durations.map(n=>{const tick=document.createElement('i');tick.style.left=(n/maximum*100)+'%';tick.title=n+' seconds';return tick;}));
-  $('clip-limit').style.left=limit+'%';$('unlocked').style.width=limit+'%';
+  const start=document.createElement('span');start.textContent='0s';start.className='start';
+  const end=document.createElement('span');end.textContent=duration+'s';end.className='end current';
+  $('stages').append(start,end);
+  $('ticks').replaceChildren();$('clip-limit').hidden=true;$('unlocked').hidden=true;
+  $('progress').style.width='0%';
 }
 function controls(){const disabled=!track||ended||loading;$('play').disabled=disabled||!buffer;$('guess').disabled=disabled||!buffer;$('skip').disabled=disabled||!buffer;}
 function closeSuggestions(){$('suggestions').hidden=true;$('guess').setAttribute('aria-expanded','false');$('guess').removeAttribute('aria-activedescendant');selected=-1;}
@@ -54,9 +55,8 @@ $('play').addEventListener('click',async()=>{
   source=context.createBufferSource();source.buffer=buffer;source.connect(gain);
   const duration=Math.min(levels[level][step],buffer.duration-audioOffset);const start=context.currentTime;
   source.start(start,audioOffset,duration);$('play').classList.add('playing');$('play').setAttribute('aria-label','Stop audio clip');setStatus('Listen closely…');
-  const maximum=levels[level].at(-1);
-  source.onended=()=>{source=null;cancelAnimationFrame(animation);$('play').classList.remove('playing');$('play').setAttribute('aria-label','Replay audio clip');$('progress').style.width=timelinePercent(duration,duration,maximum)+'%';setStatus('Know it? Search below. Or listen again.');};
-  const animate=()=>{if(!source)return;$('progress').style.width=timelinePercent(context.currentTime-start,duration,maximum)+'%';animation=requestAnimationFrame(animate);};animate();
+  source.onended=()=>{source=null;cancelAnimationFrame(animation);$('play').classList.remove('playing');$('play').setAttribute('aria-label','Replay audio clip');$('progress').style.width='100%';setStatus('Know it? Search below. Or listen again.');};
+  const animate=()=>{if(!source)return;$('progress').style.width=timelinePercent(context.currentTime-start,duration,duration)+'%';animation=requestAnimationFrame(animate);};animate();
 });
 function finish(correct){
   stopAudio();ended=true;controls();closeSuggestions();
